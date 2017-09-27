@@ -127,7 +127,7 @@ void updateControl(){
      => G = (i3 + (i2/4 + i4/4)) / 2
      => B = (i5 + (i4/2) /2
      */
-  uint32_t c = ledstrip.Color((value1+(value2>>1)>>1),(value3+(value2 >>2+value4 >>2) >>1),(value5+(value4 >>1) >>1));
+  uint32_t c = ledstrip.Color((value1>>2+(value2>>3)>>1),(value3>>2+(value2>>4+value4>>4) >>1),(value5>>2+(value4 >>3) >>1));
   ledstrip.setPixelColor(ledN++, c);
   ledstrip.show();
   if(ledN>=ledstrip.numPixels()) ledN=0;
