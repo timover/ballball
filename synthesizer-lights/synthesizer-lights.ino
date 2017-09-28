@@ -9,18 +9,17 @@
  *  
  */
 #import <Adafruit_NeoPixel.h>
-
 #include <MozziGuts.h>
 #include <Oscil.h>
 #include <tables/chum9_int8.h> // recorded audio wavetable
-#include <tables/triangle_valve_2048_int8.h>
-#include <tables/sin2048_int8.h>
+//#include <tables/triangle_valve_2048_int8.h>
+#include <tables/SIN4096_int8.h>
 #include <tables/brownnoise8192_int8.h> // recorded audio wavetable
-//#include <tables/SIN2048_int8.h>
+//#include <tables/SIN4096_int8.h>
 #include <tables/envelop2048_uint8.h>
 #include <LowPassFilter.h>
 #include <mozzi_rand.h>
-#include <mozzi_midi.h>
+//#include <mozzi_midi.h>
 #include <RollingAverage.h>
 #include <ControlDelay.h>
 
@@ -31,14 +30,14 @@ Adafruit_NeoPixel ledstrip = Adafruit_NeoPixel(12, 7, NEO_GRB + NEO_KHZ800);
 
 //Oscillators for audio
 Oscil<CHUM9_NUM_CELLS, AUDIO_RATE> a1(CHUM9_DATA);
-Oscil<TRIANGLE_VALVE_2048_NUM_CELLS, AUDIO_RATE> a2(TRIANGLE_VALVE_2048_DATA);
+Oscil<SIN4096_NUM_CELLS, AUDIO_RATE> a2(SIN4096_DATA);
 
 // control oscillator for tremelo
-Oscil<SIN2048_NUM_CELLS, CONTROL_RATE> kVibrato(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> a3Sin0(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> a3Sin1(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> a3Sin2(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> a3Sin3(SIN2048_DATA);
+Oscil<SIN4096_NUM_CELLS, AUDIO_RATE> kVibrato(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a3Sin0(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a3Sin1(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a3Sin2(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a3Sin3(SIN4096_DATA);
 
 unsigned int echo_cells_1 = 32;
 unsigned int echo_cells_2 = 60;
@@ -46,11 +45,11 @@ unsigned int echo_cells_3 = 127;
 ControlDelay <128, int> kDelay; // 2seconds
 
 // Audio 4 Synth from PhaseMod_Envelope example
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> a4Carrier(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> a4Modulator(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> a4ModWidth(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, CONTROL_RATE> kModFreq1(SIN2048_DATA);
-Oscil <SIN2048_NUM_CELLS, CONTROL_RATE> kModFreq2(SIN2048_DATA);
+Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a4Carrier(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a4Modulator(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a4ModWidth(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, CONTROL_RATE> kModFreq1(SIN4096_DATA);
+Oscil <SIN4096_NUM_CELLS, CONTROL_RATE> kModFreq2(SIN4096_DATA);
 Oscil <ENVELOP2048_NUM_CELLS, AUDIO_RATE> a4Envelop(ENVELOP2048_DATA);
 
 Oscil<BROWNNOISE8192_NUM_CELLS, AUDIO_RATE> a5(BROWNNOISE8192_DATA);
@@ -65,15 +64,15 @@ RollingAverage <int,16> input5;
 
 LowPassFilter lpf;
 
-int a2Intensity,  a4Intensity, a5Intensity = 0;
+int a1Intensity, a2Intensity,  a4Intensity, a5Intensity = 0;
 
 void setup(){
   startMozzi(CONTROL_RATE);
-  a1.setFreq(mtof(65.f)); //sound 1
+  a1.setFreq(2.f); //sound 1
   lpf.setResonance(200); //sound 1 filter
 
-  a2.setFreq(mtof(130.f));
-  kVibrato.setFreq(15.f);
+  a2.setFreq(440);
+  kVibrato.setFreq(.05f);
   kDelay.set(echo_cells_1);
 
   a4Carrier.setFreq(55);
@@ -82,9 +81,9 @@ void setup(){
   a4ModWidth.setFreq(2.52434f);
   a4Envelop.setFreq(9.0f);
 
-  //Serial.begin(9600);
   ledstrip.begin();
   ledstrip.show();
+  
 }
 
 void loop(){
@@ -103,11 +102,12 @@ void updateControl(){
   // map the modulation into the filter range (0-255), not at full
   lpf.setCutoffFreq(map(value1,0,1023,10,180));
 
+  a1Intensity = map(value3,0,1023,0,255);
   a2Intensity = map(value2,0,1023,0,255);
-  kVibrato.setFreq((float) 31+(value3>>4));
+  //kVibrato.setFreq((float) 31+(value3>>4));
   
-  a3Sin0.setFreq(value4);
-  a3Sin1.setFreq(kDelay.next(value4));
+  a3Sin0.setFreq(value2);
+  a3Sin1.setFreq(kDelay.next(value2));
   a3Sin2.setFreq(kDelay.read(echo_cells_2));
   a3Sin3.setFreq(kDelay.read(echo_cells_3));
 
@@ -115,7 +115,10 @@ void updateControl(){
 
   a4Modulator.setFreq(277.0f + 0.4313f*kModFreq1.next() + kModFreq2.next());
 
-  a5Intensity = map(value5,0,1023,0,255);
+  a5Intensity = map(value2,0,1023,0,255);
+
+
+  
   /* LED ring color mapping:
      R: input1
      Y: input2
@@ -127,7 +130,12 @@ void updateControl(){
      => G = (i3 + (i2/4 + i4/4)) / 2
      => B = (i5 + (i4/2) /2
      */
-  uint32_t c = ledstrip.Color((value1>>2+(value2>>3)>>1),(value3>>2+(value2>>4+value4>>4) >>1),(value5>>2+(value4 >>3) >>1));
+  uint32_t c = ledstrip.Color(
+    a1Intensity, a2Intensity, a4Intensity
+    //(value1>>2+(value2>>3)>>1),
+    //(value3>>2+(value2>>4+value4>>4) >>1),
+    //(value5>>2+(value4 >>3) >>1)
+  );
   ledstrip.setPixelColor(ledN++, c);
   ledstrip.show();
   if(ledN>=ledstrip.numPixels()) ledN=0;
@@ -135,11 +143,21 @@ void updateControl(){
 
 int updateAudio(){
   Q15n16 vibrato = (Q15n16) a2Intensity * kVibrato.next();
-  int a4audio = a4Carrier.phMod((int)a4Modulator.next()*(150u+a4ModWidth.next()));
-  a4audio *= (byte)a4Envelop.next()*a4Intensity;
-  a4audio >>= 8;
-  return (int) ((long) lpf.next(a1.next()) + (a2Intensity*a2.phMod(vibrato) >>8) +(3*((int)a3Sin0.next()+a3Sin1.next()+(a3Sin2.next()>>1)
-    +(a3Sin3.next()>>2)) >>3) + a4audio + (a5.next()*a5Intensity >>8 ) >> 4);
+  //int a4audio = a4Carrier.phMod((int)a4Modulator.next()*(150u+a4ModWidth.next()));
+  //a4audio *= (byte)a4Envelop.next()*a4Intensity;
+  //a4audio >>= 8;
+  return (int) (
+    
+    lpf.next(a1.next()) +
+    //(a2Intensity*a2.phMod(vibrato) >>8)
+    (3*((int)a3Sin0.next()+a3Sin1.next()+(a3Sin2.next()>>1)+(a3Sin3.next()>>2) >>3))  
+    //a4audio + 
+    //(a5.next()*a5Intensity >>8 )
+    //>> 4
+    //) ;
+   //return a2Intensity*a2.next() >>8;
+    //return a2.next();
+    );
 }
 
 
