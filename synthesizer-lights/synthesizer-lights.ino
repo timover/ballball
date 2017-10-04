@@ -1,15 +1,5 @@
-
-/* 
- *  DH2400 Physical Interaction and Design
- *  Fall 2017
- *  Group 11
- *  Synthesizer and LED ring controller
- *  
- *  Inputs: A0 - A4: sensor data from another arduino
- *  
- */
-#import <Adafruit_NeoPixel.h>
 #include <MozziGuts.h>
+#import <Adafruit_NeoPixel.h>
 #include <Oscil.h>
 #include <tables/chum9_int8.h> // recorded audio wavetable
 //#include <tables/triangle_valve_2048_int8.h>
@@ -26,7 +16,7 @@
 #define CONTROL_RATE 64 // powers of 2 please
 
 //Initializing the LED ring
-Adafruit_NeoPixel ledstrip = Adafruit_NeoPixel(12, 7, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledstrip = Adafruit_NeoPixel(16, 7, NEO_GRB + NEO_KHZ800);
 
 //Oscillators for audio
 Oscil<CHUM9_NUM_CELLS, AUDIO_RATE> a1(CHUM9_DATA);
