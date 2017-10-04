@@ -14,7 +14,7 @@
 #include <tables/chum9_int8.h> // recorded audio wavetable
 //#include <tables/triangle_valve_2048_int8.h>
 #include <tables/SIN4096_int8.h>
-#include <tables/brownnoise8192_int8.h> // recorded audio wavetable
+#include <tables/whitenoise8192_int8.h> // recorded audio wavetable
 //#include <tables/SIN4096_int8.h>
 #include <tables/envelop2048_uint8.h>
 #include <LowPassFilter.h>
@@ -44,16 +44,12 @@ unsigned int echo_cells_2 = 60;
 unsigned int echo_cells_3 = 127;
 ControlDelay <128, int> kDelay; // 2seconds
 
-// Audio 4 Synth from PhaseMod_Envelope example
-Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a4Carrier(SIN4096_DATA);
-Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a4Modulator(SIN4096_DATA);
-Oscil <SIN4096_NUM_CELLS, AUDIO_RATE> a4ModWidth(SIN4096_DATA);
-Oscil <SIN4096_NUM_CELLS, CONTROL_RATE> kModFreq1(SIN4096_DATA);
-Oscil <SIN4096_NUM_CELLS, CONTROL_RATE> kModFreq2(SIN4096_DATA);
-Oscil <ENVELOP2048_NUM_CELLS, AUDIO_RATE> a4Envelop(ENVELOP2048_DATA);
-
-Oscil<BROWNNOISE8192_NUM_CELLS, AUDIO_RATE> a5(BROWNNOISE8192_DATA);
-
+//Sound 5
+Oscil<WHITENOISE8192_NUM_CELLS, AUDIO_RATE> a5(WHITENOISE8192_DATA);
+Oscil <SIN4096_NUM_CELLS, CONTROL_RATE> a5Mod(SIN4096_DATA);
+Oscil<SIN4096_NUM_CELLS, AUDIO_RATE> a5Howl(SIN4096_DATA);
+int a5HowlFreq = 440;
+int a5HowlDir = 3;
 
 //Averaging for smoothing out input signals
 RollingAverage <int,16> input1;
@@ -75,11 +71,10 @@ void setup(){
   kVibrato.setFreq(.05f);
   kDelay.set(echo_cells_1);
 
-  a4Carrier.setFreq(55);
-  kModFreq1.setFreq(3.98f);
-  kModFreq2.setFreq(3.31757f);
-  a4ModWidth.setFreq(2.52434f);
-  a4Envelop.setFreq(9.0f);
+
+  a5.setFreq(1.f);
+  a5Mod.setFreq(.1f);
+  a5Howl.setFreq(420);
 
   ledstrip.begin();
   ledstrip.show();
@@ -98,6 +93,9 @@ void updateControl(){
   int value3 = input3.next(mozziAnalogRead(2));
   int value4 = input4.next(mozziAnalogRead(3));
   int value5 = input5.next(mozziAnalogRead(4));
+
+  //debug
+  value1 = 0;
   
   // map the modulation into the filter range (0-255), not at full
   lpf.setCutoffFreq(map(value1,0,1023,10,180));
@@ -112,13 +110,16 @@ void updateControl(){
   a3Sin3.setFreq(kDelay.read(echo_cells_3));
 
   a4Intensity = map(value4,0,1023,0,255);
-
-  a4Modulator.setFreq(277.0f + 0.4313f*kModFreq1.next() + kModFreq2.next());
-
   a5Intensity = map(value2,0,1023,0,255);
 
+  //debug:
+  //a1Intensity = a2Intensity =  a4Intensity = 0;
 
-  
+  //a5Intensity = 128;
+  //a5Intensity = 128+a5Mod.next();
+  a5Howl.setFreq(a5HowlFreq+((int) a5Intensity));
+
+  Serial.println(a5Intensity);
   /* LED ring color mapping:
      R: input1
      Y: input2
@@ -142,18 +143,19 @@ void updateControl(){
 }
 
 int updateAudio(){
-  Q15n16 vibrato = (Q15n16) a2Intensity * kVibrato.next();
+  //Q15n16 vibrato = (Q15n16) a2Intensity * kVibrato.next();
   //int a4audio = a4Carrier.phMod((int)a4Modulator.next()*(150u+a4ModWidth.next()));
   //a4audio *= (byte)a4Envelop.next()*a4Intensity;
   //a4audio >>= 8;
   return (int) (
     
-    lpf.next(a1.next()) +
+    (lpf.next(a1.next()) * a1Intensity >>8)+
     //(a2Intensity*a2.phMod(vibrato) >>8)
-    (3*((int)a3Sin0.next()+a3Sin1.next()+(a3Sin2.next()>>1)+(a3Sin3.next()>>2) >>3))  
+    (3*((int)a3Sin0.next()+a3Sin1.next()+(a3Sin2.next()>>1)+(a3Sin3.next()>>2) >>3)) +
     //a4audio + 
-    //(a5.next()*a5Intensity >>8 )
-    //>> 4
+    (a5.next()*a5Intensity >>8 ) +
+    (a5Howl.next()*a5Intensity >>8 )
+   // >> 2
     //) ;
    //return a2Intensity*a2.next() >>8;
     //return a2.next();
