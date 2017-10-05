@@ -21,10 +21,14 @@
 //#include <mozzi_midi.h>
 #include <RollingAverage.h>
 #include <ControlDelay.h>
+#include <EventDelay.h>
 #include "Airsynt.h"
 #include "bass.h"
+//#include "bassdrum.h"
+//#include "snare.h"
+//#include "hihat.h"
 
-#define CONTROL_RATE 64 // powers of 2 please
+#define CONTROL_RATE 32 // powers of 2 please
 //#define AUDIO_RATE 16384 // powers of 2 please
 
 #define INPUT_1 1
@@ -56,6 +60,14 @@ ControlDelay <128, int> kDelay; // 2seconds
 //sound 4
 Sample<BASS_8192_NUM_CELLS, AUDIO_RATE> a4(BASS_8192_DATA);
 
+//Drums
+//Sample<SNARE_8192_NUM_CELLS, AUDIO_RATE> snare(SNARE_8192_DATA);
+//Sample<BD_8192_NUM_CELLS, AUDIO_RATE> bd(BD_8192_DATA);
+//Sample<HH_8192_NUM_CELLS, AUDIO_RATE> hh(HH_8192_DATA);
+EventDelay drumDelay;
+boolean playSnare = false;
+boolean playHihat = false;
+
 //Averaging for smoothing out input signals
 RollingAverage <int,16> input1;
 RollingAverage <int,16> input2;
@@ -72,9 +84,9 @@ int a1Intensity, a2Intensity,  a3Intensity, a4Intensity = 0;
 
 void setup(){
   pinMode(3,INPUT); //set pin 3 to work as a kill switch for output
-  
+ 
   startMozzi(CONTROL_RATE);
-  a1.setFreq(1.6f); //sound 1
+  a1.setFreq(3.6f); //sound 1
   a1.setLoopingOn();
   lpf.setResonance(200); //sound 1 filter
 
@@ -87,6 +99,12 @@ void setup(){
 
   ledstrip.begin();
   ledstrip.show();
+
+  /*snare.setFreq((float) SNARE_8192_SAMPLERATE / (float) SNARE_8192_NUM_CELLS);
+  bd.setFreq((float) BD_8192_SAMPLERATE / (float) BD_8192_NUM_CELLS);
+  hh.setFreq((float) HH_8192_SAMPLERATE / (float) HH_8192_NUM_CELLS);
+  drumDelay.set(300);
+  drumDelay.start();*/
 }
 
 void loop(){
@@ -95,7 +113,7 @@ void loop(){
 
 
 void updateControl(){
-  enableOutput = (boolean) digitalRead(3);
+  enableOutput = true; //(boolean) digitalRead(3);
   
   int value1 = input1.next(mozziAnalogRead(INPUT_1));
   int value2 = input2.next(mozziAnalogRead(INPUT_2));
@@ -117,7 +135,18 @@ void updateControl(){
   // map the modulation into the filter range (0-255), not at full
   lpf.setCutoffFreq(map(value4,0,1023,10,230));
 
-
+  /*if(drumDelay.ready()){
+    if(playHihat) {
+      hh.start();
+    }
+    else {
+      if(playSnare) snare.start();
+      else bd.start();
+      playSnare = !playSnare;
+    }
+    playHihat = !playHihat;
+    drumDelay.start();
+  }*/
   
   /* LED ring color mapping:
      R: input1
@@ -161,14 +190,14 @@ int updateAudio(){
  
   if(enableOutput) return (int) (
     (long)
-    (a1.next() * a1Intensity >>8)
-    +
-    (a2.phMod(vibrato)*a2Intensity >>8 )
-    +
-    (3*((int)a3Sin0.next()+a3Sin1.next()+(a3Sin2.next()>>1)+(a3Sin3.next()>>2) >>3))
-    +
+    (a1.next() * a1Intensity >>8) +
+    (a2.phMod(vibrato)*a2Intensity >>8 ) +
+    (3*((int)a3Sin0.next()+a3Sin1.next()+(a3Sin2.next()>>1)+(a3Sin3.next()>>2) >>3)) +
     (lpf.next(a4.next())*a4Intensity >>8 )
 
+    /*+ bd.next()
+    + snare.next()
+    + hh.next()*/
     >> 2
     );
   else return 0;
