@@ -12,12 +12,13 @@
 #include <MozziGuts.h>
 #include <Oscil.h>
 #include <Sample.h>
-#include <tables/chum9_int8.h> // recorded audio wavetable
+//#include <tables/chum9_int8.h> // recorded audio wavetable
 //#include <tables/triangle_valve_2048_int8.h>
 #include <tables/SIN8192_int8.h>
+#include <tables/SAW4096_int8.h>
 //#include <tables/envelop2048_uint8.h>
 #include <LowPassFilter.h>
-#include <mozzi_rand.h>
+//#include <mozzi_rand.h>
 //#include <mozzi_midi.h>
 #include <RollingAverage.h>
 #include <ControlDelay.h>
@@ -28,8 +29,8 @@
 //#include "snare.h"
 //#include "hihat.h"
 
-#define CONTROL_RATE 32 // powers of 2 please
-//#define AUDIO_RATE 16384 // powers of 2 please
+#define CONTROL_RATE 64 // powers of 2 please
+#define AUDIO_RATE 8192 // powers of 2 please
 
 #define INPUT_1 1
 #define INPUT_2 2
@@ -44,7 +45,7 @@ Adafruit_NeoPixel ledstrip = Adafruit_NeoPixel(16, 7, NEO_GRB + NEO_KHZ800);
 Sample<AIRSYNTH_8192_NUM_CELLS, AUDIO_RATE> a1(AIRSYNTH_8192_DATA);
 
 //sound 2
-Oscil<SIN8192_NUM_CELLS, AUDIO_RATE> a2(SIN8192_DATA);
+Oscil<SAW4096_NUM_CELLS, AUDIO_RATE> a2(SAW4096_DATA);
 Oscil<SIN8192_NUM_CELLS, AUDIO_RATE> kVibrato(SIN8192_DATA);
 
 // sound 3
@@ -53,8 +54,8 @@ Oscil <SIN8192_NUM_CELLS, AUDIO_RATE> a3Sin1(SIN8192_DATA);
 Oscil <SIN8192_NUM_CELLS, AUDIO_RATE> a3Sin2(SIN8192_DATA);
 Oscil <SIN8192_NUM_CELLS, AUDIO_RATE> a3Sin3(SIN8192_DATA);
 unsigned int echo_cells_1 = 32;
-unsigned int echo_cells_2 = 60;
-unsigned int echo_cells_3 = 127;
+unsigned int echo_cells_2 = 64;
+unsigned int echo_cells_3 = 128;
 ControlDelay <128, int> kDelay; // 2seconds
 
 //sound 4
@@ -86,25 +87,26 @@ void setup(){
   pinMode(3,INPUT); //set pin 3 to work as a kill switch for output
  
   startMozzi(CONTROL_RATE);
-  a1.setFreq(3.6f); //sound 1
+  //a1.setFreq(3.19f); //sound 1
+  a1.setFreq(4.f);
   a1.setLoopingOn();
   lpf.setResonance(200); //sound 1 filter
 
-  a2.setFreq(440);
+  a2.setFreq(152);
   kVibrato.setFreq(10);
   kDelay.set(echo_cells_1);
 
-  a4.setFreq(4.f);
+  a4.setFreq(3.f);
   a4.setLoopingOn();
 
   ledstrip.begin();
   ledstrip.show();
 
-  /*snare.setFreq((float) SNARE_8192_SAMPLERATE / (float) SNARE_8192_NUM_CELLS);
-  bd.setFreq((float) BD_8192_SAMPLERATE / (float) BD_8192_NUM_CELLS);
-  hh.setFreq((float) HH_8192_SAMPLERATE / (float) HH_8192_NUM_CELLS);
-  drumDelay.set(300);
-  drumDelay.start();*/
+  //snare.setFreq((float) SNARE_8192_SAMPLERATE / (float) SNARE_8192_NUM_CELLS);
+  //bd.setFreq((float) BD_8192_SAMPLERATE / (float) BD_8192_NUM_CELLS);
+  //hh.setFreq((float) HH_8192_SAMPLERATE / (float) HH_8192_NUM_CELLS);
+  //drumDelay.set(300);
+  //drumDelay.start();
 }
 
 void loop(){
@@ -123,8 +125,8 @@ void updateControl(){
   a1Intensity = map(value1,0,1023,0,255);
   //a1Intensity = 200;
   
-  a2Intensity = map(value2,0,1023,0,255);
-  kVibrato.setFreq(a2Intensity >> 4);
+  a2Intensity = map(value2,0,1023,0,180);
+  kVibrato.setFreq(a2Intensity >> 5);
   
   a3Sin0.setFreq(value3);
   a3Sin1.setFreq(kDelay.next(value3));
@@ -137,7 +139,7 @@ void updateControl(){
 
   /*if(drumDelay.ready()){
     if(playHihat) {
-      hh.start();
+      //hh.start();
     }
     else {
       if(playSnare) snare.start();
@@ -187,9 +189,8 @@ void updateControl(){
 
 int updateAudio(){
   Q15n16 vibrato = (Q15n16) kVibrato.next() * a2Intensity;
- 
-  if(enableOutput) return (int) (
-    (long)
+  
+  long out = (
     (a1.next() * a1Intensity >>8) +
     (a2.phMod(vibrato)*a2Intensity >>8 ) +
     (3*((int)a3Sin0.next()+a3Sin1.next()+(a3Sin2.next()>>1)+(a3Sin3.next()>>2) >>3)) +
@@ -200,6 +201,7 @@ int updateAudio(){
     + hh.next()*/
     >> 2
     );
+  if(enableOutput) return (int) constrain( out,-254,255);
   else return 0;
 }
 
