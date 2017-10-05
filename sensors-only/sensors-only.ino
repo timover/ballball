@@ -1,6 +1,8 @@
 
 #include <CapacitiveSensor.h>
 
+#define WIFI_COMM A0
+
 CapacitiveSensor cs_4_2 = CapacitiveSensor(4,2); // 10 megohm resistor between pins 4 & 2, pin 2 is sensor pin, add wire, foil
 CapacitiveSensor cs_4_3 = CapacitiveSensor(4,7); // 10 megohm resistor between pins 4 & 2, pin 2 is sensor pin, add wire, foil
 CapacitiveSensor cs_4_5 = CapacitiveSensor(4,8); // 10 megohm resistor between pins 4 & 2, pin 2 is sensor pin, add wire, foil
@@ -14,6 +16,7 @@ int average2a[AV_LENGTH];
 int average3a[AV_LENGTH];
 int average4a[AV_LENGTH];
 int average5a[AV_LENGTH];
+bool isOn = true; 
 
 void setup(){
   Serial.begin(115200);
@@ -27,9 +30,19 @@ void setup(){
   pinMode(6, OUTPUT);
   pinMode(9, OUTPUT);
   pinMode(10, OUTPUT); 
+  pinMode(11, OUTPUT); 
 }
 
 void loop(){
+  int val = digitalRead(5);
+  int potentio = analogRead(1);
+  int minOutput = map( potentio, 0, 1023, 10, 700) ; 
+  int maxOutput = map( potentio, 0, 1023, 500, 1300) ;
+  Serial.println(val);
+  if(val > 0)
+    {
+      isOn = false; 
+    }
   long start = millis();
   long total1 = cs_4_2.capacitiveSensor(60);
   long total2 = cs_4_3.capacitiveSensor(60);
@@ -54,6 +67,8 @@ void loop(){
     average4 += average4a[i];  
     average5 += average5a[i];  
   }
+
+  
   
   average1 = average1/AV_LENGTH;
   average2 = average2/AV_LENGTH;
@@ -61,36 +76,61 @@ void loop(){
   average4 = average4/AV_LENGTH;
   average5 = average5/AV_LENGTH;
 
-  int averageMapped1 = map(average1, 100, 1500, 0, 1023);
-  int averageMapped2 = map(average2, 100, 1500, 0, 1023);
-  int averageMapped3 = map(average3, 100, 1500, 0, 1023);
-  int averageMapped4 = map(average4, 100, 1500, 0, 1023);
-  int averageMapped5 = map(average5, 100, 1500, 0, 1023); 
-  Serial.print(average1);
+  average1 = max(average1, minOutput);
+  average2 = max(average2, minOutput);
+  average3 = max(average3, minOutput);
+  average4 = max(average4, minOutput);
+  average5 = max(average5, minOutput);
+
+  average1 = min(average1, maxOutput);
+  average2 = min(average2, maxOutput);
+  average3 = min(average3, maxOutput);
+  average4 = min(average4, maxOutput);
+  average5 = min(average5, maxOutput);
+
+  int averageMapped1 = map(average1, minOutput, maxOutput, 0, 255);
+  int averageMapped2 = map(average2, minOutput, maxOutput, 0, 255);
+  int averageMapped3 = map(average3, minOutput, maxOutput, 0, 255);
+  int averageMapped4 = map(average4, minOutput, maxOutput, 0, 255);
+  int averageMapped5 = map(average5, minOutput, maxOutput, 0, 255); 
+  Serial.print(averageMapped1);
   Serial.print(",");
-  Serial.print(average2);
+  Serial.print(averageMapped2);
   Serial.print(",");
-  Serial.print(average3);
+  Serial.print(averageMapped3);
   Serial.print(",");
-  Serial.print(average4);
+  Serial.print(averageMapped4);
   Serial.print(",");
   
-  Serial.println(average5);
+  Serial.println(averageMapped5);
+  
+ // if(isOn){
   analogWrite(3, averageMapped1);
-  analogWrite(5, averageMapped2);
-  analogWrite(6, averageMapped3);
-  analogWrite(9, averageMapped4);
-  analogWrite(10, averageMapped5); 
+  analogWrite(6, averageMapped2);
+  analogWrite(9, averageMapped3);
+  analogWrite(10, averageMapped4); 
+  analogWrite(11, averageMapped5);
+  digitalWrite(5, HIGH);
+ // }
 
- /*  analogWrite(3, 100);
-    analogWrite(5, 200);
-  analogWrite(6, 200);
-  analogWrite(9, 300);
-  analogWrite(10, 300);
+ /* else{
+    analogWrite(3, 0);
+    analogWrite(6, 0);
+    analogWrite(9, 0);
+    analogWrite(10, 0); 
+    analogWrite(11, 0);
+    digitalWrite(5, LOW);
+  }
+/*
+   analogWrite(3, 500);
+    
+  analogWrite(6, 600);
+  analogWrite(9, 700);
+  analogWrite(10, 800);
+ analogWrite(11, 900);
+   //delay(2000);
  
-   delay(2000);
- 
- //  analogWrite(3, 200);
+ /*  analogWrite(3, 200);
  analogWrite(5, 400);
   analogWrite(6, 400);
   analogWrite(9, 600);
