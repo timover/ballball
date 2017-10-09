@@ -1,8 +1,11 @@
-Currently two sensors mapped to two sounds
-1.Test the different available sounds
-2. Get the LEDs and inside lamp (?): check that would demand, how do we wire it?
-3. Materials: construction, baking paper, curtain
-4. Explore wireless connection: for switching it on and off or connection between the boards
-5. Use multiplexer - for splitting signals?
-6. Decide on a design theme
-7. More connectors are needed.
+### Tree 60
+
+To run the project on your computer:
+
+git clone url (you can find the url in the repo on Github). To get the libraries working you need to include them using Arduino IDE packages manager. The libraries used are as follows:
+
+1. [CapacitiveSensor](https://playground.arduino.cc/Main/CapacitiveSensor?from=Main.CapSense)
+2. [Mozzi](http://sensorium.github.io/Mozzi/)
+3. [Adafruit Neopixel library](https://learn.adafruit.com/adafruit-neopixel-uberguide/arduino-library-installation)
+4. Wifi module ESP8266 [programming instructions](https://cdn.sparkfun.com/datasheets/Wireless/WiFi/ESP8266ModuleV1.pdf)
+
