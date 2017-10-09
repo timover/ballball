@@ -9,6 +9,7 @@ unsigned int localUdpPort = 4210;  // local port to listen on
 char incomingPacket[255];  // buffer for incoming packets
 char  replyPacket[] = "Hi there! Switching Tree30 status! Enjoy! :-)";  // a reply string to send back
 
+boolean messageReceived = false;
 
 void setup()
 {
@@ -42,6 +43,7 @@ void loop()
     {
       incomingPacket[len] = 0;
   //    digitalWrite(2, HIGH);
+      messageReceived = true;
     }
     Serial.printf("UDP packet contents: %s\n", incomingPacket);
     // send back a reply, to the IP address and port we got the packet from
@@ -49,6 +51,8 @@ void loop()
     Udp.write(replyPacket);
     Udp.endPacket();
     delay(1000);
-    digitalWrite(2, LOW);
+    if(messageReceived) digitalWrite(2, HIGH);
+    else digitalWrite(2,LOW);
   }
 }
+
